@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PV-CAD — Outils Challenge Bat</title>
+  <link rel="icon" type="image/png" href="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png">
+  <style>
+    :root{--navy:#13265d;--blue:#2463eb;--ink:#0f172a;--muted:#64748b;--line:#cbd5e1;--bg:#edf3fb}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;color:var(--ink);background:linear-gradient(135deg,#e8eef8,#f8fafc)}
+    button,input{font:inherit}.hidden{display:none!important}
+    .gate{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#e8eef8,#f8fafc)}
+    .auth-card{width:min(460px,100%);padding:26px;background:#fff;border:1px solid #d5dce8;border-radius:24px;box-shadow:0 20px 60px rgba(15,23,42,.18)}
+    .brand{display:flex;align-items:center;gap:13px;margin-bottom:22px}.brand-mark{display:grid;place-items:center;width:52px;height:52px;border-radius:15px;background:linear-gradient(145deg,#2d67df,#173c9b);color:#fff;font-weight:900}.brand strong{display:block;font-size:18px}.brand small{display:block;margin-top:4px;color:var(--muted)}
+    h1{margin:0;font-size:28px}p{color:var(--muted);line-height:1.5}.auth-card label{display:block;margin:13px 0 6px;font-size:13px;font-weight:800}.auth-card input{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px}.primary{width:100%;margin-top:16px;padding:12px;border:0;border-radius:11px;background:var(--blue);color:#fff;font-weight:900;cursor:pointer}.auth-msg{min-height:20px;margin-top:12px;font-size:13px;font-weight:700}.auth-msg.error{color:#b91c1c}.auth-msg.ok{color:#166534}
+    .portal{min-height:100vh;padding:22px}.portal-card{width:min(900px,100%);margin:0 auto 30px;padding:28px;background:#fff;border:1px solid #d5dce8;border-radius:24px;box-shadow:0 20px 60px rgba(15,23,42,.16)}
+    .portal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}.portal-head p{margin:8px 0 0}.head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.user{max-width:230px;padding:7px 10px;border-radius:999px;background:#e2e8f0;font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.logout{padding:7px 10px;border:0;border-radius:999px;background:#334155;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.version{padding:6px 9px;border-radius:999px;background:#dbeafe;color:#1e3a8a;font-size:11px;font-weight:900}
+    .section-title{margin:22px 0 12px;font-size:14px;color:#334155;text-transform:uppercase;letter-spacing:.06em}.tools{display:grid;grid-template-columns:1fr 1fr;gap:16px}.tool{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:11px;min-height:175px;padding:20px;border:1px solid var(--line);border-radius:18px;background:#f8fafc;color:var(--ink);text-decoration:none;transition:.16s ease}.tool:hover{transform:translateY(-2px);border-color:#60a5fa;box-shadow:0 12px 25px rgba(37,99,235,.12)}.tool strong{font-size:18px}.tool small{color:var(--muted);font-size:13px;line-height:1.4}.open{display:inline-flex;padding:8px 12px;border-radius:999px;background:var(--blue);color:#fff;font-size:12px;font-weight:900}.logo{display:grid;place-items:center;min-width:50px;height:44px;padding:0 10px;border-radius:11px;background:var(--navy);color:#fff;font-weight:900}.logo.challenge{width:50px;padding:0;background:#fff}.logo.challenge img{width:46px;height:42px;object-fit:contain}.logo.ikea{background:#ffda1a;color:#0755a3;border:4px solid #0755a3;border-radius:50%}.logo.cbat{background:#111827;color:#ff6b1a}.logo.extra{background:#fff;color:#30228d;border:1px solid #e2e8f0;font-size:18px}.logo.centiro{background:#fff;color:#111827;border:1px solid #e2e8f0;font-size:17px}
+    .dual{display:flex;gap:8px;width:100%}.dual a{flex:1;padding:8px;border-radius:9px;background:#e2e8f0;color:#1e3a8a;text-align:center;text-decoration:none;font-size:12px;font-weight:900}
+    @media(max-width:680px){.portal{padding:12px}.portal-card{padding:20px}.portal-head{display:block}.head-actions{justify-content:flex-start;margin-top:14px}.tools{grid-template-columns:1fr}.tool{min-height:150px}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <section id="authGate" class="gate">
+    <div class="auth-card">
+      <div class="brand"><div class="brand-mark">CB</div><div><strong>Challenge Bat</strong><small>Accès professionnel sécurisé</small></div></div>
+      <h1>Portail PV-CAD</h1>
+      <p>Connectez-vous avec votre adresse professionnelle Challenge Bat.</p>
+      <label for="email">Adresse e-mail</label><input id="email" type="email" autocomplete="username" placeholder="prenom@challengebat.fr">
+      <label for="password">Mot de passe</label><input id="password" type="password" autocomplete="current-password">
+      <button id="login" class="primary" type="button">Se connecter</button>
+      <div id="message" class="auth-msg">Vérification de la session…</div>
+    </div>
+  </section>
+
+  <main id="portal" class="portal hidden">
+    <section class="portal-card">
+      <header class="portal-head"><div><h1>Outils Challenge Bat</h1><p>Choisissez votre outil. Chaque accès s’ouvre dans un nouvel onglet.</p></div><div class="head-actions"><span class="version">v1.0.0</span><span id="user" class="user"></span><button id="logout" class="logout" type="button">Déconnexion</button></div></header>
+      <h2 class="section-title">Outils PVMAN</h2>
+      <div class="tools">
+        <a class="tool" href="/Devis-IKEA/?open=devis" target="_blank" rel="noopener"><span class="logo cbat">BAT</span><strong>Générateur de devis IKEA</strong><small>Analyser un PDF IKEA et générer le devis détaillé et le récapitulatif client.</small><span class="open">Ouvrir</span></a>
+        <a class="tool" href="/Check-List-Pvman/?open=checklist" target="_blank" rel="noopener"><span class="logo challenge"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Challenge Bat"></span><strong>Check-list pré-visite</strong><small>Renseigner les contrôles terrain et préparer les informations nécessaires au chiffrage.</small><span class="open">Ouvrir</span></a>
+        <a class="tool" href="/Guide-Pvman/" target="_blank" rel="noopener"><span class="logo challenge"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Challenge Bat"></span><strong>Guide du PVMAN</strong><small>Consulter les méthodes, consignes et bonnes pratiques de pré-visite.</small><span class="open">Ouvrir</span></a>
+        <a class="tool" href="/Calepinage-panneaux/" target="_blank" rel="noopener"><span class="logo challenge"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Challenge Bat"></span><strong>Calepinage des panneaux de finition</strong><small>Calculer les panneaux nécessaires et préparer un plan de découpe optimisé.</small><span class="open">Ouvrir</span></a>
+      </div>
+      <h2 class="section-title">Accès professionnels</h2>
+      <div class="tools">
+        <a class="tool" href="https://kitchen.planner.ikea.com/fr/fr/" target="_blank" rel="noopener"><span class="logo ikea">IKEA</span><strong>IKEA Kitchen Planner</strong><small>Ouvrir l’outil IKEA de conception et de planification de cuisine.</small><span class="open">Ouvrir</span></a>
+        <a class="tool" href="https://www.myextrabat.com" target="_blank" rel="noopener"><span class="logo extra">extrabat</span><strong>Extrabat</strong><small>Accéder à l’espace de gestion commerciale et aux dossiers clients.</small><span class="open">Ouvrir</span></a>
+        <div class="tool"><div class="dual"><a href="https://www.challengebat.fr/pointage" target="_blank" rel="noopener">Pointage</a><a href="https://www.challengebat.fr/documents-entreprise" target="_blank" rel="noopener">Connexion</a></div><span class="logo challenge"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Challenge Bat"></span><strong>Site Challenge Bat</strong><small>Accéder au site, au pointage et aux documents de l’entreprise.</small><a class="open" href="https://www.challengebat.fr/" target="_blank" rel="noopener">Ouvrir</a></div>
+        <a class="tool" href="https://sites.google.com/challengebat.fr/pvmans" target="_blank" rel="noopener"><span class="logo challenge"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Challenge Bat"></span><strong>Intranet Challenge Bat</strong><small>Accéder à l’intranet des PVMAN.</small><span class="open">Ouvrir</span></a>
+        <a class="tool" href="https://www.ikea.com/fr/fr/" target="_blank" rel="noopener"><span class="logo ikea">IKEA</span><strong>Site internet IKEA</strong><small>Accéder au site français d’IKEA.</small><span class="open">Ouvrir</span></a>
+        <a class="tool" href="https://eu.centiro.ikea.com/c3neo/UI/commonui/Login" target="_blank" rel="noopener"><span class="logo centiro">centiro</span><strong>Centiro</strong><small>Accéder à la plateforme logistique Centiro IKEA.</small><span class="open">Ouvrir</span></a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig={apiKey:"AIzaSyB-hKccNAiciGjUeS6L-Ws3KRzYxMyU3L4",authDomain:"cbat-consulting.firebaseapp.com",projectId:"cbat-consulting",storageBucket:"cbat-consulting.firebasestorage.app",messagingSenderId:"258359623144",appId:"1:258359623144:web:4e5a54a09e5ac9245a785d"};
+    firebase.initializeApp(firebaseConfig);firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const $=id=>document.getElementById(id),msg=(text,type="")=>{$("message").textContent=text;$('message').className="auth-msg"+(type?" "+type:"")};
+    async function login(){const email=$('email').value.trim(),password=$('password').value;if(!email||!password){msg("Saisissez l’adresse e-mail et le mot de passe.","error");return}try{msg("Connexion en cours…");await firebase.auth().signInWithEmailAndPassword(email,password)}catch(e){msg("Connexion impossible : vérifiez vos identifiants.","error")}}
+    $('login').addEventListener('click',login);$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('logout').addEventListener('click',()=>firebase.auth().signOut());
+    firebase.auth().onAuthStateChanged(async user=>{if(user){const email=(user.email||'').toLowerCase();if(!email.endsWith('@challengebat.fr')){await firebase.auth().signOut();msg("Cette page est réservée aux adresses @challengebat.fr.","error");return}$('user').textContent=user.email;$('authGate').classList.add('hidden');$('portal').classList.remove('hidden')}else{$('portal').classList.add('hidden');$('authGate').classList.remove('hidden');if(!$('message').classList.contains('error'))msg("Connectez-vous pour accéder aux outils.")}});
+  </script>
+</body>
+</html>
