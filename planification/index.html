@@ -39,7 +39,7 @@
       <div class="auth-message" id="authMessage">Vérification de la session…</div>
     </div>
   </section>
-  <header><div class="head"><div class="brand"><div class="mark"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Logo Challenge Bat"></div><div><h1>Planification et capacités IKEA</h1><p>Challenge Bat · <span class="version">Version 0.11.9</span></p></div></div><div class="local-tools"><div class="local" id="localStatus">Connexion aux données locales…</div><button class="refresh-btn" id="refreshLocal" type="button">Actualiser maintenant</button></div></div></header>
+  <header><div class="head"><div class="brand"><div class="mark"><img src="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png" alt="Logo Challenge Bat"></div><div><h1>Planification et capacités IKEA</h1><p>Challenge Bat · <span class="version">Version 0.11.10</span></p></div></div><div class="local-tools"><div class="local" id="localStatus">Connexion aux données locales…</div><button class="refresh-btn" id="refreshLocal" type="button">Actualiser maintenant</button></div></div></header>
   <main>
     <nav class="tabs" aria-label="Modules"><button class="tab active" data-view="planning">Planification</button><button class="tab" data-view="nearby">Techniciens proches</button><button class="tab" data-view="capacity">Capacités IKEA</button></nav>
     <div id="error" class="error" role="alert"></div>
@@ -179,7 +179,33 @@ function rowClient(row){return norm([field(row,'Prénom','Prenom','Prénom du cl
 function proximityPairs(row){const dates=String(field(row,'Date des interventions','Dates des interventions')),people=String(field(row,'Intervenants')),dateMap=new Map(),result=[];for(const m of dates.matchAll(/Inter\s*(\d+)\s*:\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gi))dateMap.set(m[1],isoDate(m[2]));for(const part of people.split(/(?=Inter\s*\d+\s*:)/i)){const m=part.match(/Inter\s*(\d+)\s*:\s*([\s\S]*)/i),date=m&&dateMap.get(m[1]);if(!date)continue;for(const who of m[2].matchAll(/([^\n\r<>]+?\((?:PV|P|A[1-4])\))/gi)){const whoLabel=clean(who[1]);result.push({date,who:norm(whoLabel),whoLabel})}}return result}
 function plannedKind(row,source){if(source==='sav')return'sav';const value=norm(field(row,'Libellé','Libelle','Type','Nature'));if(value.includes('previsite')||value.includes('metre'))return'pv';if(value.includes('cad')||value.includes('conception'))return'cad';return value.includes('pose')?'pose':'autre'}
 function clientLabel(row){return clean([field(row,'Prénom','Prenom','Prénom du client'),field(row,'Nom','Nom du client')].filter(Boolean).join(' '))||'Client non renseigné'}
-function buildProximityLocations(){proximityLocations=[];for(const [rows,source] of[[exportsData.services||[],'service'],[exportsData.sav||[],'sav']])for(const row of rows){const address=rowSiteAddress(row);if(!address.query)continue;let pairs=proximityPairs(row);if(!pairs.length){const whoLabel=firstInstaller(field(row,'Intervenants')),who=norm(whoLabel),dates=String(field(row,'Date des interventions','Dates des interventions')).match(/\d{2}[\/.-]\d{2}[\/.-]\d{4}/g)||[];pairs=dates.map(date=>({who,whoLabel,date:isoDate(date)})).filter(x=>x.who&&x.date)}for(const pair of pairs)proximityLocations.push({...pair,...address,client:rowClient(row),clientLabel:clientLabel(row),kind:plannedKind(row,source)})}}
+function buildProximityLocations(){
+  proximityLocations=[];
+  const catalog=[];
+  for(const [rows,source] of[[exportsData.services||[],'service'],[exportsData.sav||[],'sav']])for(const row of rows){
+    const address=rowSiteAddress(row);if(!address.query)continue;
+    const item={...address,client:rowClient(row),clientLabel:clientLabel(row),kind:plannedKind(row,source),search:norm(Object.values(row||{}).join(' '))};
+    catalog.push(item);
+  }
+  const matchCatalog=text=>{
+    const haystack=norm(text),numbers=(haystack.match(/\b\d{6,}\b/g)||[]);let best=null;
+    for(const item of catalog){let score=0;const words=item.client.split(' ').filter(word=>word.length>2);
+      if(item.client&&haystack.includes(item.client))score+=12;
+      score+=words.filter(word=>haystack.includes(word)).length*3;
+      score+=numbers.filter(number=>item.search.includes(number)).length*10;
+      if(!best||score>best.score)best={item,score};
+    }
+    return best&&best.score>=3?best.item:null;
+  };
+  for(const resource of agendas?.resources||[])for(const key of Object.keys(resource.days||{})){
+    const date=isoDate(key);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+    const agendaEntries=[...mergedAgendaEntries(resource,date),...capacityMultiEntries(resource,date)];
+    for(const entry of agendaEntries){
+      const item=matchCatalog(entry.text);if(!item)continue;
+      proximityLocations.push({...item,date,who:norm(resource.name),whoLabel:clean(resource.name),agendaText:entry.text});
+    }
+  }
+}
 function sameTechnician(a,b){const aa=norm(a).replace(/\s+(?:pv|p|a[1-4])\s*$/,''),bb=norm(b).replace(/\s+(?:pv|p|a[1-4])\s*$/,'');return aa===bb||aa.includes(bb)||bb.includes(aa)}
 function agendaLocation(resource,date,text){const ntext=norm(text),matches=proximityLocations.filter(x=>x.date===date&&sameTechnician(x.who,resource.name));let best=null;for(const item of matches){let score=0;const words=item.client.split(' ').filter(w=>w.length>2);score+=words.filter(w=>ntext.includes(w)).length*3;if(item.client&&ntext.includes(item.client))score+=8;if(!best||score>best.score)best={...item,score}}if(best&&best.score>=3)return{query:best.query,label:best.label,exact:true};const groups=[...String(text||'').matchAll(/\(([^)]+)\)/g)].map(m=>m[1].trim()),department=(String(text||'').match(/^\s*\((\d{2,3})\)/)||[])[1]||'',city=groups.find((value,index)=>index>0&&!/^\d+$/.test(value));if(city)return{query:[city,department,'France'].filter(Boolean).join(', '),label:city+(department?' ('+department+')':''),exact:false};const postal=(String(text||'').match(/\b\d{5}\b/)||[])[0];return postal?{query:postal+', France',label:postal,exact:false}:null}
 function mergedAgendaEntries(resource,date){const entries=timedEntries(dayText(resource,date)).sort((a,b)=>a.start-b.start),result=[];for(const entry of entries){const previous=result.at(-1);if(previous&&norm(previous.text)===norm(entry.text)&&entry.start<=previous.end){previous.end=Math.max(previous.end,entry.end)}else result.push({...entry})}return result}
@@ -227,7 +253,7 @@ function renderPlannedSites(rows,resource,road,missing,departure){const box=$('n
 async function searchOrdersNearResource(){const key=$('resourceSelect').value,date=$('resourceDate').value,time=$('resourceTime').value||'10:00',type=$('resourceOrderType').value,limitValue=$('resourceLimit').value,limit=limitValue==='all'?Infinity:Number(limitValue)||5,resource=proximityResources().find(r=>capacityName(r.name)===key),button=$('resourceSearch');if(!resource){$('nearbyInfo').innerHTML='<strong>Ressource obligatoire.</strong> Choisissez le technicien dont le domicile servira de point de départ.';return}if(!date){$('nearbyInfo').innerHTML='<strong>Date obligatoire.</strong> Choisissez la date des chantiers Extrabat à rechercher.';return}const minute=Number(time.slice(0,2))*60+Number(time.slice(3,5)),departure=resourceDeparture(resource,date,minute);if(!departure){$('nearbyInfo').innerHTML='<strong>Adresse personnelle indisponible.</strong> Le référentiel Direction ne contient pas d’adresse exploitable pour cette ressource.';return}const seen=new Set(),candidates=proximityLocations.filter(site=>site.date===date&&(!type||site.kind===type)).filter(site=>{const key=norm(site.query+'|'+site.clientLabel+'|'+site.date+'|'+site.who);if(seen.has(key))return false;seen.add(key);return true});if(!candidates.length){renderPlannedSites([],resource,false,0,departure);$('nearbyInfo').innerHTML='<strong>Aucun chantier Extrabat trouvé.</strong> Aucun chantier déjà planifié ne correspond à la date et au filtre choisis.';return}button.disabled=true;button.textContent='Recherche…';$('nearbyInfo').textContent='Classement de tous les chantiers Extrabat déjà planifiés depuis le domicile choisi…';try{const origin=await geocodeAddress(departure.query),settled=await Promise.allSettled(candidates.map(async site=>({site,point:await geocodeAddress(site.query)}))),located=[];let missing=0;for(const item of settled){if(item.status==='fulfilled')located.push(item.value);else missing++}located.sort((a,b)=>haversine(origin,a.point)-haversine(origin,b.point));const matrix=await routeFromOrigin(origin,located.map(x=>x.point));let rows=located.map((item,i)=>({...item,...matrix.rows[i]})).filter(x=>Number.isFinite(x.minutes)&&Number.isFinite(x.km)).sort((a,b)=>a.minutes-b.minutes||a.km-b.km||a.site.clientLabel.localeCompare(b.site.clientLabel,'fr'));if(Number.isFinite(limit))rows=rows.slice(0,limit);renderPlannedSites(rows,resource,matrix.road,missing,departure);$('nearbyInfo').innerHTML=`<strong>${rows.length} chantier${rows.length>1?'s':''} Extrabat déjà planifié${rows.length>1?'s':''}</strong> le ${esc(formatDate(date))}, classé${rows.length>1?'s':''} depuis l’adresse personnelle de ${esc(resource.name)}. Chaque résultat indique la ressource réellement affectée.`;}catch(err){$('nearbyInfo').innerHTML='<strong>Recherche impossible.</strong> '+esc(err.message);$('nearbyResults').innerHTML='<div class="nearby-empty"><strong>Aucun résultat</strong>Réessayez dans quelques instants.</div>'}finally{button.disabled=false;button.textContent='Rechercher'}}
 $('modeFromSite').addEventListener('click',()=>setNearbyMode('site'));$('modeFromResource').addEventListener('click',()=>setNearbyMode('resource'));$('resourceSearch').addEventListener('click',searchOrdersNearResource);
 
-const CAPACITY_VERSION='0.11.9';let capacityWorkbook=null,capacityFileName='',capacityRows=new Map();
+const CAPACITY_VERSION='0.11.10';let capacityWorkbook=null,capacityFileName='',capacityRows=new Map();
 let capacityRoster=null;
 function capacityName(v){return norm(String(v||'').split(/\r?\n/)[0])}
 function capacityInstallers(){return capacityRoster?agendaResources(/\((?:P|A[1-4])\)/i).filter(r=>capacityRoster.get(capacityName(r.name))===true):[]}
